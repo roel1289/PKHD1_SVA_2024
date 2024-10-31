@@ -1,0 +1,847 @@
+---
+title: "PKHD1 SVA Summary"
+author: "Ross Ellwood"
+date: "10-30-2024"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F)
+
+#install packages:
+library(tidyverse)
+
+# install wes anderson color palette
+if(!require(wesanderson)){
+    install.packages("wesanderson")
+    library(wesanderson)
+}
+library(ggfortify)  
+```
+
+## Software used
+R Version 4.4.1, Python Version 3.12.3, and Red Hat Enterprise Linux 8.9 (Ootpa) were used along with the following packages:
+
+| Package | Version | Use |
+|---------|-----|-----------|
+| dplyr | 1.1.4 | General data processing | 
+| ggplot2 | 3.5.1 | Data Visualization |
+| minimap2 | 2.28 | Aligning reads to reference genome |
+| lima |  2.9.0 | Demultiplexing |
+| samtools | 1.20 | Processing alignment files |
+| fuzzywuzzy | 0.18.0 | Approximate string matching | 
+**Table 1.** A list of the packages used, their version, as well as the specific task.
+
+## Introduction
+This report summarizes the work done so far regarding the SVA retrotransposon insertion located in an intron of the *PKHD1* gene. It has been recently seen that within *PKHD1*, there is an abundance of PolyGR accumulation, and it is hypothesized this PolyGR is a result of the hexamer repeat in SVA, GGGAGA, which translates to **G** and **R** amino acids. The main question of this project is what are the different SVA structures of the *PKHD1* SVA, and are any of them more associated with Alzheimer's disease? Our central hypothesis is: There are different structures of *PKHD1* SVA that affect AD differently. Specifically, the tandem repeat subunits are the key locations where AD-associated variations occur. 
+
+
+In order to answer this question, PacBio Amplicon Sequencing was conducted producing long-read sequence data. This is where I began the project, downloading the sequence data, processing, and visualizing the data.   
+
+## Data Generation & Methods
+
+```{r, echo=F, fig.cap="**Figure 1.** The workflow of generating data beginning with downloading raw sequencing data to filtering and aligning data.", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/data_generation_wf.png")
+```
+The overall workflow of the project involved downloading raw sequence data from PacBio. I was able to download data from Azure cloud. Next, using the program, lima, I demultiplexed the raw sequence data into each of the 79 samples. At this point, I used minimap2 to align the demultiplexed raw sequence data to three human genome assemblies: hg19, GRCh38, and T2T. Alignment files were mainly used to verify that the amplicon sequencing properly matched up with the *PKHD1* gene. Next, I used an approximate string matching tool, fuzzywuzzy, to filter the demultiplexed raw sequence data, so that I kept only full-SVA containing reads. With the full-SVA containing reads, I was able to go through each sample, and call alleles. Allele calling was guided by previous repeat-primed PCR data which could tell if a sample had homozygous non-expanded hexamers, heterozygous hexamers, and homozygous long hexamers. Additionaly, I was able to analyze SVA on a deeper level, identifying seven hexamer variants, as well as expanded and non-expanded VNTR variants. 
+
+#### Genome coverage
+In order to have multiple comparisons when mapping raw reads to a reference, we utilized three different assemblies: hg19, GRCh38, and T2T. **Table 2** describes some of the mapping coverage information, which was obtained using the `samtools coverage` command. Since, the type of sequencing conducted was amplicon sequencing, most of the reads should align to chromosome 6, where *PKHD1* is located. The perentage of covered bases on chromosome 6 is low, but this makes sense because the amplicon sequencing is not sequencing all of chromosome 6, just the *PKHD1* SVA. 
+
+```{r, echo =F, fig.cap="**Table 2.** table of the alignment coverage statistics.", fig.align="center"}
+mapping_cov_df <- data.frame(Stat = c("Median Reads per Sample", "Percentage of Covered Bases on Chr6"), hg19 = c(115171, 0.00499547), GRCh38 = c(91250, 0.00477032), T2T = c(31731, 0.00566211))
+
+knitr::kable(mapping_cov_df)
+
+```
+**Table 2.** table of the alignment coverage statistics
+
+## Results
+The majority of the final results were done using the full-SVA containing FASTQ files. The FASTQ were chosen to be utilized over the aligned BAM files because BAM files may have filtered out important sequences due to soft clipping. So, in order to retain the complete sequence from the full-SVA reads, we utilized the FASTQ files. 
+
+
+
+### Hexamer vs VNTR association
+Next, I asked the question how is the length of a hexamer associated to the length of VNTR? When hexamers are expanded, do we also see VNTRs expanded? In order to answer this question, I went through each sample, and recorded the length of every hexamer and every VNTR. I was then able to plot these points and produce various linear regressions. 
+
+When I first plotted each length of hexamer and VNTR, there was maybe a slight difference between AD and Control, but it was hard to tell (**Figure 2**).
+```{r, fig.cap="**Figure 2.**", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/every_read_every_sample.png")
+```
+
+Next, I decided to see what the trends look like when I removed all of the homozygous expanded hexamer samples (**Figure 3**).
+```{r, fig.cap="**Figure 3.**", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/every_read_+_-_.png")
+```
+
+After that I looked at just homozygous expanded samples, and this seemed to be where there was a big difference between AD and Control (**Figure 4**).
+```{r, fig.cap="**Figure 4.**", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/every_read_+_.png")
+```
+
+Additionally, when I filtered for reads where the hexamer length is greater than 450 basepairs and the VNTR length is greater than 1500 basepairs, this is I noticed the biggest difference between AD and Control (**Figure 5**).
+```{r, fig.cap="**Figure 5.**", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/every_read_+_exp.png")
+```
+
+At this point, I noticed that there were many hexamer and VNTR lengths that were much smaller than expected due to the read being truncated during sequencing. So, I developed a script using a `fuzzy` approximate string matching tool to only use reads that contain a full SVA. So, as shown in **Figure 6**, each data point is coming from a full-SVA read, and there are less erroneous data points.
+```{r, fig.cap="**Figure 6.**", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/filtered_exp.png")
+```
+
+As shown in **Figure 7**, I was able to make a linear regression line for each sample. 
+```{r, fig.cap="**Figure 7.**", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/filtered_exp_2.png")
+
+```
+
+
+
+```{r}
+# subsetting full data by only looking at +/+ cases from both AD and control:
+
+exp_exp <- c('pool-1_2908_PK1sva_bc1023_Male_AD_36R1_47R2_p4.fastq', 'pool-3_ADRC2157_PK1sva_bc1017_Female_AD_39R1_50R2_p4.fastq', 'pool-3_2157_PK1sva_bc1004_Female_AD_39R1_49R2_p5.fastq', 'pool-3_NACC079433_PK1sva_bc1006_Male_AD_46R1_50R2_p11.fastq', 'pool-3_1610_PK1sva_bc1011_Female_AD_31R1_34R2_p3.fastq', 'pool-1_110398_PK1sva_bc1007_Female_AD_42R1_43R2_p1.fastq', 'pool-4_A21-032_PK1sva_bc1010_Male_AD_44R1_47R2_p1.fastq', 'pool-5_NACC351618_PK1sva_bc1021_Male_AD_43R1_56R2_p9.fastq', 'pool-5_ADRC1956_PK1sva_bc1008_Male_AD_46R1_51R2_p4.fastq', 'pool-1_A20-002_PK1sva_bc1013_Male_AD_47R1_48R2_p4.fastq', 'pool-4_A15-005_PK1sva_bc1013_Male_AD_41R1_48R2_p4.fastq', 'pool-5_ADRC2014_PK1sva_bc1020_Male_AD_32R1_48R2_p5.fastq', 'pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq', 'pool-5_ADRC1862_PK1sva_bc1009_Male_AD_29R1_42R2_p5.fastq', 'pool-2_A16-003_PK1sva_bc1007_Male_AD_38R1_39R2_p1.fastq', 'pool-3_ADRC2227_PK1sva_bc1007_Male_AD_40R1_54R2_p4.fastq', 'pool-3_1603_PK1sva_bc1010_Male_AD_45R1_53R2_p1.fastq', 'pool-2_1024_PK1sva_bc1004_Male_AD_48R1_49R2_p4.fastq', 'pool-2_ADRC2107_PK1sva_bc1017_Female_AD_41R1_43R2_p4.fastq', 'pool-1_ADRC1935_PK1sva_bc1005_Female_AD_45R1_49R2_p1.fastq', 'pool-5_2153_PK1sva_bc1014_Male_AD_31R1_44R2_p4.fastq','pool-2_ADRC2526_PK1sva_bc1005_Female_Control_39R1_39R2_p1.fastq', 'pool-5_ADRC2015_PK1sva_bc1012_Male_Control_36R1_41R2_p4.fastq', 'pool-4_ADRC1872_PK1sva_bc1012_Female_Control_42R1_47R2_p4.fastq', 'pool-3_HBTB96_PK1sva_bc1013_Female_Control_50R1_59R2_p4.fastq', 'pool-2_1517_PK1sva_bc1010_Female_Control_35R1_43R2_p1.fastq', 'pool-1_1873_PK1sva_bc1009_Male_Control_40R1_50R2_p1.fastq', 'pool-4_2052_PK1sva_bc1014_Male_Control_44R1_45R2_p4.fastq')
+
+#remove lines that contain unwanted exp exp filenames:
+# filtered_df <- combined_hex_VNTR_len_full[combined_hex_VNTR_len_full$SampleID %in% exp_exp, ]
+# 
+# 
+# #for some reason, one file didn't have "_AD_" in the name, so I am editing the dataframe to include that:
+# combined_hex_VNTR_len_full <- filtered_df %>% 
+#   mutate(SampleID = str_replace(SampleID, "pool-2_110373_PK1sva_bc1018_83_Male_37R1_44R2_p1.fastq", "pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq" ))
+# 
+# #make a 4th column that has AD or Control:
+# df_with_cat <- combined_hex_VNTR_len_full %>%
+#   mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+#                            ifelse(grepl("_AD_", SampleID), "AD", NA)))
+# 
+# #subsetting expexp dataframe so that it only has Hexamer > 450 and VNTR > 1500
+# subset_df_with_cat <- df_with_cat %>% 
+#   filter(Hexamer >= 450 & VNTR >= 1500)
+# 
+# #unique AD names in this subset of data:
+# uniq_names <- unique(subset_df_with_cat$SampleID)
+# sum(grepl("_AD_", uniq_names))
+# sum(grepl("_Control_", uniq_names))
+# 
+# # Run linear model for Control
+# model_control <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat, Category == "Control"))
+# summary(model_control)
+# 
+# # Run linear model for AD
+# model_ad <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat, Category == "AD"))
+# summary(model_ad)
+# 
+# #linear reg sorted by AD or Ctrl
+# ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = Category)) +
+#   geom_point(size=1, alpha = 0.6) +
+#   stat_smooth(method = "lm", se = F) +
+#   xlim(450, 800)+
+#   ylim(1500,4000)+
+#   theme_bw()+
+#   labs(title = "Hexamer length vs VNTR length across only both expanded samples", x = "Hexamer Length", y="VNTR Length")
+```
+
+################################
+```{r, echo = F, fig.cap="**Figure 8.** ", include=F}
+#import new data
+combined_hex_VNTR_allele <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/combined_hex_len_exp_allele_filtered_long.txt", header=FALSE)
+
+names(combined_hex_VNTR_allele) <- c("Hexamer", "VNTR", "SampleID")
+
+#for some reason, one file didn't have "_AD_" in the name, so I am editing the dataframe to include that:
+combined_hex_VNTR_allele <- combined_hex_VNTR_allele %>% 
+  mutate(SampleID = str_replace(SampleID, "pool-2_110373_PK1sva_bc1018_83_Male_37R1_44R2_p1.fastq", "pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq" ))
+
+
+#make a 4th column that has AD or Control:
+df_with_cat_allele <- combined_hex_VNTR_allele %>%
+  mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+                           ifelse(grepl("_AD_", SampleID), "AD", NA)))
+
+subset_df_with_cat_allele <- df_with_cat_allele %>% 
+  filter(Hexamer >= 450 & VNTR >= 1500)
+
+# Run linear model for Control
+model_control <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat_allele, Category == "Control"))
+summary(model_control)
+
+# Run linear model for AD
+model_ad <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat_allele, Category == "AD"))
+summary(model_ad)
+
+#get n
+uniq_names_allele_sub <- unique(subset_df_with_cat_allele$SampleID)
+sum(grepl("_AD_", uniq_names_allele_sub))
+sum(grepl("_Control_", uniq_names_allele_sub))
+
+#linear reg sorted by AD or Ctrl
+ggplot(data = subset_df_with_cat_allele, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1, alpha = 0.6) +
+  stat_smooth(method = "lm", se = F) +
+  xlim(0, 800)+
+  ylim(0,4000)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across only both expanded samples after\n filtering out non-full-SVA reads", x = "Hexamer Length", y="VNTR Length")
+
+ggplot(data = subset_df_with_cat_allele, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1, alpha = 0.6) +
+  stat_smooth(method = "lm", se = F, aes(group = SampleID), linetype = "solid") +
+  xlim(0, 1200)+
+  ylim(0,4000)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length using all expanded alleles after filtering \nout non-full-SVA reads", x = "Hexamer Length", y="VNTR Length")+
+  # theme(legend.position = "none")+
+  #geom_line(aes(group = SampleID)) +
+  scale_color_manual(values = c("Control" = "blue", "AD" = "red")) # Define colors fo
+
+ggplot(data = df_with_cat_allele, aes(x = VNTR, fill = Category))+
+  geom_histogram(binwidth = 20)+
+  xlim(2000,3000)+
+  labs(title = "Non-Hexamer SVA lengths (VNTR) show two major groupings", x = "Non-Hexamer (VNTR) Length", y = "Count")
+```
+
+
+### Allele Calling
+
+```{r, echo=F}
+##########################################################################
+#filtered data:
+alleleCall_filtered <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/filtered_full_FASTQ/alleleCall_filtered23.txt", header=FALSE) %>% 
+  mutate(pattern = ifelse(grepl("_p1\\.", V1), "p1", 
+                  ifelse(grepl("_p2\\.", V1), "p2",
+                  ifelse(grepl("_p3\\.", V1), "p3",
+                  ifelse(grepl("_p4\\.", V1), "p4",
+                  ifelse(grepl("_p5\\.", V1), "p5",
+                  ifelse(grepl("_p6\\.", V1), "p6",
+                  ifelse(grepl("_p7\\.", V1), "p7",
+                  ifelse(grepl("_p8\\.", V1), "p8",
+                  ifelse(grepl("_p9\\.", V1), "p9",
+                  ifelse(grepl("_p10\\.", V1), "p10",
+                  ifelse(grepl("_p11\\.", V1), "p11",
+                  ifelse(grepl("_p12\\.", V1), "p12",
+                  ifelse(grepl("_p13\\.", V1), "p13",
+                         NA)))))))))))))) %>% 
+  rename(filename = V1,
+         total_reads = V2,
+         allele1_hex = V3,
+         allele1_hex_count = V4,
+         allele1_hex_ratio = V5,
+         allele1_VNTR = V6,
+         allele1_VNTR_count = V7,
+         allele1_full_type = V8,
+         allele1_full_count = V9,
+         allele1_hexhexvar = V10,
+         allele1_hexhexvar_count = V11,
+         allele2_hex = V12,
+         allele2_hex_count = V13,
+         allele2_hex_ratio = V14,
+         allele2_VNTR = V15,
+         allele2_VNTR_count = V16,
+         allele2_hexhexvar = V17,
+         allele2_hexhexvar_count = V18,
+         allele2_full_type = V19,
+         allele2_full_count = V20,
+         shortHex_sub_allele1 = V21,
+         shorthex_sub_allele1_count = V22,
+         longHex_sub_allele1 = V23,
+         longHex_sub_allele1_count = V24) %>%
+  mutate(Category = ifelse(grepl("_Control_", filename), "Control", 
+                           ifelse(grepl("_AD_", filename), "AD", NA)))
+
+
+# getting rid of samples that only have 1 read
+alleleCall_filtered <- alleleCall_filtered %>% 
+  filter(!(total_reads <=1))
+```
+
+After comparing different hexamer sequences between different samples, it is apparent that there are various hexamer structures. Some of the hexamer variations include a pure GGGAGA repeat, repeat expansions, repeat interruptions, and even GGGGAGA repeats. In order to take each variant and combination into account, we developed an allele calling script that can call alleles for each sample. This was conducted on the full SVA containing FASTQ files to ensure that we are not counting truncated reads. 
+
+First, we chose to investigate which samples call non-expanded and expanded hexamer types. 
+
+
+It has been shown that expanded hexamer repeats are more likely to affect disease, so we will focus in on alleles that contain expanded hexamer repeats.
+
+```{r, echo=F, fig.cap="**Figure 9.** This bar graph shows the percent of AD alleles that are expanded, compared between AD and Control. After conducting a chi-squared test, we can conclude the AD and Control groups are not significantly different, with a X-squared value of 0.42803 and p-value = 0.513", fig.align="center"}
+longHex_filtereDF <- alleleCall_filtered %>% select(filename, allele1_hex, allele2_hex, allele1_VNTR, allele2_VNTR,Category)
+# significantly different groups?
+
+##########################################################
+# Expand the dataframe to treat each allele as a separate sample
+expanded_df <- longHex_filtereDF %>%
+  pivot_longer(cols = c(allele1_hex, allele2_hex, allele1_VNTR, allele2_VNTR), names_to = "allele_position", values_to = "allele_type")
+
+#total number of ad alleles and control alleles. (divided by 2 so that i can get the proper count, since it is pivot longered)
+total_AD_alleles <- expanded_df %>% filter(Category == "AD") %>% nrow()
+total_AD_alleles <- (total_AD_alleles/2)
+total_CTRL_alleles <- expanded_df %>% filter(Category == "Control") %>% nrow()
+total_CTRL_alleles <- (total_CTRL_alleles/2)
+
+# Filter for LongHex alleles
+long_hex_df <- expanded_df %>%
+  filter(allele_type == "LongHex")
+
+######################
+# Count occurrences of each category
+category_counts <- long_hex_df %>%
+  group_by(Category) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = ifelse(Category == "AD", (count / total_AD_alleles) * 100,
+                             (count / total_CTRL_alleles) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", total_AD_alleles, total_CTRL_alleles)))  # Create a fraction string
+
+# Create a contingency table for the chi-squared test
+contingency_table <- table(long_hex_df$Category)
+
+# Perform the chi-squared test
+chi_squared_result <- chisq.test(contingency_table)
+data <- matrix(c(66, 32, 100-66, 54-32), nrow = 2)  # Here 34 and 22 are the counts of the other group (if any)
+rownames(data) <- c("AD", "Control")
+colnames(data) <- c("Success", "Failure")  # Adjust based on your context
+
+# Perform chi-squared test
+chisq_test <- chisq.test(data)
+# print(chisq_test)
+# Print the results
+# print(contingency_table)
+
+# chi_res <- chi_squared_result
+# chi_res  #uncomment to see stats
+
+# Create the bar chart
+ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+            position = position_stack(vjust = 0.5), 
+            color = "black") +  # Add percentages and fractions on top of the bars
+  labs(title = "Percent of AD/CTRL alleles in all expanded Hex alleles", x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+  theme_minimal() +
+  scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))+
+  theme_bw()
+```
+
+Similar to expanded hexamers, we can ask the question, in expanded VNTR cases, do we see more AD?
+
+```{r, echo=F, fig.cap="**Figure 10.** This graph shows the percentage of expanded VNTR alleles that are AD or Control. With the percentages so close, it is difficult to make a conclusion on if AD is significanly different from Control. With a X-squared value of 0.2549 and a p-value of 0.6136, we do not find any significant difference between AD and Control in our cohort.", fig.align="center"}
+longHex_filtereDF <- alleleCall_filtered %>% select(filename, allele1_hex, allele2_hex, allele1_VNTR, allele2_VNTR,Category)
+# significantly different groups?
+
+##########################################################
+# Expand the dataframe to treat each allele as a separate sample
+expanded_df <- longHex_filtereDF %>%
+  pivot_longer(cols = c(allele1_hex, allele2_hex, allele1_VNTR, allele2_VNTR), names_to = "allele_position", values_to = "allele_type")
+
+#total number of ad alleles and control alleles. (divided by 2 so that i can get the proper count, since it is pivot longered)
+total_AD_alleles <- expanded_df %>% filter(Category == "AD") %>% nrow()
+total_AD_alleles <- (total_AD_alleles/2)
+total_CTRL_alleles <- expanded_df %>% filter(Category == "Control") %>% nrow()
+total_CTRL_alleles <- (total_CTRL_alleles/2)
+
+# Filter for LongHex alleles
+long_VNTR_df <- expanded_df %>%
+  filter(allele_type == "long_VNTR")
+
+######################
+# Count occurrences of each category
+category_counts <- long_VNTR_df %>%
+  group_by(Category) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = ifelse(Category == "AD", (count / total_AD_alleles) * 100,
+                             (count / total_CTRL_alleles) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", total_AD_alleles, total_CTRL_alleles)))  # Create a fraction string
+
+# Create a contingency table for the chi-squared test
+contingency_table <- table(long_VNTR_df$Category)
+
+
+
+# Create a contingency table
+data <- matrix(c(86, 14, 44, 10), nrow = 2)
+rownames(data) <- c("AD", "Control")
+colnames(data) <- c("Success", "Failure")
+# Perform the chi-squared test
+chi_squared_result <- chisq.test(data)
+
+# # Print the results
+# print(contingency_table)
+# print(chi_squared_result)
+
+# Create the bar chart
+ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+            position = position_stack(vjust = 0.5), 
+            color = "black") +  # Add percentages and fractions on top of the bars
+  labs(title = "Count of AD/CTRL alleles in all expanded VNTR alleles", x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+  theme_minimal() +
+  scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))+
+  theme_bw()
+```
+
+
+
+
+
+Next, we wanted to evaluate if the expanded VNTRs are more associated with AD than the non-expanded VNTRs. 
+```{r, echo=F, fig.cap="**Table 3.** This table shows the counts of alleles in each combination of non-expanded and expanded VNTRs as well as AD or Control. Using a chi-squared test, we were able to say there is no significant difference between non-expanded and expanded VNTRs in terms of AD. The X-squared value is 0.037019, and the p-value = 0.8474.", fig.align="center"}
+# Are short or long VNTRs more associated with AD?:
+# total samples
+ad_samples <- (alleleCall_filtered %>% filter(Category == "AD"))
+total_ad_samples <- nrow(alleleCall_filtered %>% filter(Category == "AD"))
+
+ctrl_samples <- (alleleCall_filtered %>% filter(Category == "Control"))
+total_ctrl_samples <- nrow(alleleCall_filtered %>% filter(Category == "Control"))
+
+long_VNTR_ad <- nrow(ad_samples %>% filter(allele1_VNTR == "long_VNTR"))
+long_VNTR_ctrl <- nrow(ctrl_samples %>% filter(allele1_VNTR == "long_VNTR"))
+
+perc_long_VNTR_ad <- long_VNTR_ad/total_ad_samples
+perc_long_VNTR_ctrl <- long_VNTR_ctrl/total_ctrl_samples
+
+data_to_plot <- data.frame(
+  Category = c("AD", "Control"),
+  Percentage = c(perc_long_VNTR_ad, perc_long_VNTR_ctrl)
+)
+
+# # Create the plot with percentage labels
+# ggplot(data_to_plot, aes(x = Category, y = Percentage, fill = Category)) +
+#   geom_bar(stat = "identity") +
+#   geom_text(aes(label = scales::percent(Percentage)),
+#             vjust = -0.5,  # Adjust the vertical position of the text
+#             size = 3.7) +    # Adjust the size of the text
+#   scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentage
+#   labs(title = "Percentage of Long VNTR Alleles by Category",
+#        x = "Category",
+#        y = "Percentage") +
+#   theme_minimal()
+
+#making df with only important info for this:
+longVNTR_filtereDF <- alleleCall_filtered %>% select(allele1_VNTR, Category)
+
+# significantly different groups?
+# Create a contingency table
+contingency_table <- longVNTR_filtereDF %>%
+  group_by(allele1_VNTR, Category) %>%
+  summarise(count = n(),.groups = 'drop') %>%
+  tidyr::pivot_wider(names_from = Category, values_from = count, values_fill = list(count = 0))
+
+# View the contingency table
+# print(contingency_table)
+
+# Perform Chi-squared test
+chi_squared_result <- chisq.test(contingency_table[, -1])  # Exclude the allele1_hex column
+
+# Print the results
+# print(chi_squared_result)
+knitr::kable(contingency_table)
+```
+**Table 3.** This table shows the counts of alleles in each combination of non-expanded and expanded VNTRs as well as AD or Control. Using a chi-squared test, we were able to say there is no significant difference between non-expanded and expanded VNTRs in terms of AD. The X-squared value is 0.037019, and the p-value = 0.8474.
+
+
+## Variation in hexamer types
+There were seven main hexamer types seen throughout the data ( **Figure 11**).
+```{r, echo=F, fig.cap="**Figure 11.** The various SVA hexamer variants seen within our cohort.", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/hex_var_PKHD1_v2.png")
+```
+
+Now, we can dive more deeply into the combinations variations. Here, we take a look into each of the hexamer variants. We can consider each combination between non-expanded and expanded hexamers as well as each of the seven hexamer variants observed. As shown in **Figure 12**, the expanded hexamer alleles tend to be where differences between AD and Control is driven. Specifically, *LHex_hexv5* is of note because it is seen in AD and not Control, in our small cohort. This may warrant further investigation into this variant in the future. 
+
+```{r, echo=F, fig.cap="**Figure 12.** Plot shows the allele percentages of each hexamer - hexvar combination, separated by AD and Control.", fig.align="center"}
+#make new df for hex_hexvar 
+hex_hexvar_df <- alleleCall_filtered %>% select(filename, allele1_hexhexvar, allele2_hexhexvar, Category, pattern)
+#pivot longer the data so one allele is on each row
+hex_hexvar_expanded_df <- hex_hexvar_df %>% 
+  pivot_longer(cols = c(allele1_hexhexvar, allele2_hexhexvar), names_to = "allele", values_to = "hex_hexvar")
+#counts of occurences
+hex_hexvar_counts <- hex_hexvar_expanded_df %>%
+  group_by(Category, hex_hexvar) %>%
+  summarise(count = n(), .groups = 'drop') %>% 
+  mutate(percentage = ifelse(Category == "AD", (count / total_AD_alleles) * 100,
+                             (count / total_CTRL_alleles) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", total_AD_alleles, total_CTRL_alleles)))
+
+
+# Create a contingency table
+contingency_table_hex_hexvar <- hex_hexvar_counts %>%
+  pivot_wider(names_from = hex_hexvar, values_from = count, values_fill = 0)
+
+# Run Chi-squared test
+# chi_squared_result_hex_hexvar <- chisq.test(contingency_table_hex_hexvar[, -1])  # Exclude the Category column
+
+# Print the contingency table and Chi-squared test results
+# print(contingency_table_hex_hexvar)
+# print(chi_squared_result_hex_hexvar)
+
+# GRAPH:
+total_count <- sum(hex_hexvar_counts$count)
+hex_hexvar_counts$percentage_count <- hex_hexvar_counts$count / total_count
+
+ggplot(hex_hexvar_counts, aes(x = hex_hexvar, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Hex-Hexvar Counts by Category",
+       x = "Hex-Hexvar",
+       y = "Percentage") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)) +
+  geom_text(aes(label = paste0(round(percentage, 1), "%\n(", fraction, ")"), 
+                        hjust = ifelse(Category == "AD", .5, .4)), 
+            position = position_dodge(width = 0.9),  # Use position_dodge for alignment
+            color = "black", 
+            size = 3) 
+
+
+```
+
+We can go one step further and add VNTR non-expansion or expansion into the combinations (**Figure 13**). 
+
+
+
+```{r, echo=F, fig.cap="**Figure 13.** Plot shows the allele percentages of each hexamer - VNTR - hexvar combination, separated by AD and Control.", fig.align="center"}
+#  hex-vntr-hexvar types most associated with AD
+longHex_filtereDF <- alleleCall_filtered %>% select(filename, allele1_hex, allele2_hex, allele1_VNTR, allele2_VNTR,Category, allele1_full_type, allele2_full_type)
+# significantly different groups?
+
+##########################################################
+# Expand the dataframe to treat each allele as a separate sample
+expanded_df <- longHex_filtereDF %>%
+  pivot_longer(cols = c(allele1_hex, allele2_hex, allele1_VNTR, allele2_VNTR), names_to = "allele_position", values_to = "allele_type") %>% 
+  pivot_longer(cols = c(allele1_full_type, allele2_full_type), values_to ="hexvar")
+# Filter for LongHex alleles
+long_hex_df <- expanded_df %>%
+  filter(allele_type == "LongHex")
+
+
+############################
+# Count occurrences of hexvar for both AD and Control categories
+hexvar_counts <- long_hex_df %>%
+  group_by(Category, hexvar) %>%
+  summarise(count = n(), .groups = 'drop') %>% 
+  mutate(percentage = ifelse(Category == "AD", (count / total_AD_alleles) * 100,
+                             (count / total_CTRL_alleles) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", total_AD_alleles, total_CTRL_alleles)))
+
+# Create a contingency table
+contingency_table <- hexvar_counts %>%
+  pivot_wider(names_from = hexvar, values_from = count, values_fill = 0)
+
+# Run Chi-squared test
+# chi_squared_result <- chisq.test(contingency_table[, -1])  # Exclude the Category column
+
+# Print the contingency table and Chi-squared test results
+# print(contingency_table)
+# print(chi_squared_result)
+
+# Optional: Create a bar chart to visualize the results
+# ggplot(hexvar_counts, aes(x = hexvar, y = count, fill = Category)) +
+#   geom_bar(stat = "identity", position = "dodge"+  
+  # scale_y_continuous(labels = scales::percent_format(accuracy = 1))) +
+#   labs(title = "Hex-VNTR-Hexvar Counts by Category",
+#        x = "Hexvar",
+#        y = "Count") +
+#   theme_minimal() +
+#   geom_text(aes(label = count),  # Show raw counts instead of percentages
+#             position = position_dodge(width = 0.9), 
+#             vjust = -0.5, color = "black") +  # Adjust position above the bars
+#   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+###############################
+# GRAPH:
+total_count <- sum(hexvar_counts$count)
+hexvar_counts$percentage_count <- hexvar_counts$count / total_count
+
+ggplot(hexvar_counts, aes(x = hexvar, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Hex-VNTR-Hexvar Counts by Category",
+       x = "Hex-VNTR-Hexvar",
+       y = "Percentage") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)) +
+  geom_text(aes(label = paste0(round(percentage, 1), "%\n(", fraction, ")"), 
+                        hjust = ifelse(Category == "AD", .5, .4)), 
+            position = position_dodge(width = 0.9),  # Use position_dodge for alignment
+            color = "black", 
+            size = 2.4) 
+```
+### Lhex_Hexv5 variant seems to be most linked to AD
+Because in both the hexamer-hexvar and hexamer-VNTR-hexvar relationships we saw Lhex_hexv5 to be very related to AD, it is worth investigating this pattern more. Within this pattern, we are seeing the septamer, `GGGGAGA` (G4AGA) repeated multiple times; sometimes it is a pure repeat, and sometimes it is interspersed. It appears that G4AGA most often occurs in repeat pattern 5, but is also seen in repeat patterns 1,3, and 4. From analyzing the read sequences, it is apparent that some G4AGA reads occur very pure (**Figure 14**), and othertimes, G4AGA, is spread out and is interrupted by `GGGAGA` (**Figure 15**). 
+
+```{r, echo = F, fig.cap="**Figure 14.** G4AGA is highlighted.", out.width="75%", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/G4AGA_shortHex.png")
+```
+
+
+```{r, echo = F, fig.cap="**Figure 15.** G4AGA is highlighted", out.width="75%", fig.align="center"}
+knitr::include_graphics("/home/rossellwood/UF_SVA/images/G4AGA_longHex.png")
+```
+So, in order to quantify how often I am seeing each pattern, I decided to generate a ratio for each read that is `(G4AGA_count + 1) / (GGGAGA_count + 1))`. Thus, the higher the ratio, the more pure the hexamer is of G4AGA. 
+
+Using this, I was able to tell that the alleles that have the LHex_hexv5 variant have a high ratio, meaning a very pure G4AGA repeat. This observation held true when comparing this pattern in all samples. 
+
+#### How long are the repeat units in the LHex_hexv5 cases?  
+
+Using each of the files that contain at least one allele that was called for as LHex_hexv5, we can try to determine the how many repeat units are present. There are two ways to do this:  
+
+1. I can add up all of the `G4AGA` and `GGGAGA` units in the hexamer unit. Then, I can take the mode RU length (most abundant) from each sample, and then the mode of all samples. 
+2. I can take the length between the two primers surrounding the hexamer region, subtract the flanking sequence amount (229) and divide by 6:    
+
+ $(RU) count = \frac{TotalLen - 229}{6}$  
+ 
+ Then I can take the mode of each sample as well as the mode from all samples. 
+
+```{r,echo=F}
+RU_len_df <- data.frame(Method = c("Add G4AGA + GGGAGA", "Subtract flank and divide by 6"), RU_count_mode_LHex_hexv5 = c(30, 29))
+
+knitr::kable(RU_len_df)
+
+```
+
+#### Comparing hexv0 and hexv1 distances from primer to start of hexamer
+Because hexv0 and hexv1 are similar, it is worth comparing if hexv0 and hexv1 have a similar distance between the hexamer primer and the start of hexamer repeats. Thus, this would help distinguish the two variants, being able to tell if hexv1 has the insert just before the hexamer repeats. 
+
+
+```{r, echo = F, fig.cap="**Figure 16.**"}
+#import the tsv file that I generated with this distance:
+hex_primer_dist <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/filtered_full_FASTQ/hex_primer_dist.txt", header=FALSE)
+
+ggplot(data = hex_primer_dist, aes(x = V3, fill = V1))+
+  geom_histogram(binwidth = 2)+
+  labs(title = "Histogram comparing lengths between primer and hexamer start positions\ncompared between hexv0 and hexv1", x = "Distance (bp)", y = "Count")+
+  xlim(80,100)+
+  guides(fill=guide_legend(title="Hexamer Variants"))+
+  theme_bw()+
+  facet_wrap(.~V2)
+```
+
+
+## How do homozygous expanded hexamer samples relate to AD?
+To answer this question, we focus on samples that have expanded hexamers in both alleles. The first plot shows all hexamer variants. The later plots depict each of the hexamer variants. If the plot is empty, there were no homozygous expanded hexamers, both with that hexamer variant.  
+
+```{r, echo=F, out.width="50%"}
+# homozygous LHex-hexv cases:
+#make new df for hex_hexvar 
+hex_hexvar_df <- alleleCall_filtered %>% select(filename, allele1_hexhexvar, allele2_hexhexvar, Category, pattern)
+
+#filtering hex_hexvar_df so that it only contains homozygous Lhex samples:
+homozygous_LHex <- hex_hexvar_df %>%
+  filter(startsWith(allele1_hexhexvar, paste0("LHex")) & startsWith(allele2_hexhexvar, paste0("LHex")))
+
+# ggplot(data=homozygous_LHex,aes(x = allele1_hexhexvar, fill = Category))+
+  # geom_bar(position = "dodge")
+
+#make a counts table so that I can calculate % = (AD/totalAD)
+category_counts <- homozygous_LHex %>%
+  group_by(Category) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = ifelse(Category == "AD", (count / 50) * 100,
+                             (count / 27) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", 50, 27)))  # Create a fraction string
+
+#graph:
+# Create the bar chart
+p <- ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+            position = position_stack(vjust = 0.5), 
+            color = "black") +  # Add percentages and fractions on top of the bars
+  labs(title = paste0("Percent of AD/CTRL alleles in all LHex-hexv/LHex-hexv Homozygous samples"), x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+  theme_bw() +
+  scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))
+
+print(p)
+
+
+
+############
+#start of with LHex-hexv1 and other hexvar cases:
+############
+for (i in 0:6){
+  #filtering hex_hexvar_df so that it only contains homozygous Lhex samples:
+  homozygous_LHex <- hex_hexvar_df %>%
+    filter(startsWith(allele1_hexhexvar, paste0("LHex_hexv", i)) & startsWith(allele2_hexhexvar, paste0("LHex_hexv", i)))
+ 
+  # ggplot(data=homozygous_LHex,aes(x = allele1_hexhexvar, fill = Category))+
+    # geom_bar(position = "dodge")
+  
+  #make a counts table so that I can calculate % = (AD/totalAD)
+  category_counts <- homozygous_LHex %>%
+    group_by(Category) %>%
+    summarise(count = n(), .groups = 'drop') %>%
+    mutate(percentage = ifelse(Category == "AD", (count / 50) * 100,
+                               (count / 27) * 100),
+           fraction = paste0(count, "/", ifelse(Category == "AD", 50, 27)))  # Create a fraction string
+  
+  #graph:
+  # Create the bar chart
+  p <- ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+              position = position_stack(vjust = 0.5), 
+              color = "black") +  # Add percentages and fractions on top of the bars
+    labs(title = paste0("Percent of AD/CTRL alleles in all LHex-hexv",i, " Homozygous samples"), x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+    theme_bw() +
+    scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))
+  
+  print(p)
+}
+
+```
+
+#### Similarly, I investigated samples with one expanded hexamer and one non-expanded hexamer. 
+```{r, echo=F, out.width="50%"}
+# Looking at samples with only one sample that is long, and their likelihood of relation to AD, similar to above ^
+
+#make new df for hex_hexvar 
+hex_hexvar_df <- alleleCall_filtered %>% select(filename, allele1_hexhexvar, allele2_hexhexvar, Category, pattern)
+
+#filtering hex_hexvar_df so that it only contains homozygous Lhex samples:
+heterozygous_LHex <- hex_hexvar_df %>%
+  filter(startsWith(allele1_hexhexvar, paste0("SHex")) & startsWith(allele2_hexhexvar, paste0("LHex")))
+
+# ggplot(data=homozygous_LHex,aes(x = allele1_hexhexvar, fill = Category))+
+  # geom_bar(position = "dodge")
+
+#make a counts table so that I can calculate % = (AD/totalAD)
+category_counts <- heterozygous_LHex %>%
+  group_by(Category) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = ifelse(Category == "AD", (count / 50) * 100,
+                             (count / 27) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", 50, 27)))  # Create a fraction string
+
+#graph:
+# Create the bar chart
+p <- ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+            position = position_stack(vjust = 0.5), 
+            color = "black") +  # Add percentages and fractions on top of the bars
+  labs(title = paste0("Percent of AD/CTRL alleles in all SHex-hexv/LHex-hexv Heterozygous samples"), x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+  theme_bw() +
+  scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))
+
+print(p)
+
+##########
+for (i in 0:6){
+#filtering hex_hexvar_df so that it only contains one Lhex allele per samples:
+  heterozygous_LHex <- hex_hexvar_df %>%
+    filter(startsWith(allele1_hexhexvar, paste0("SHex_hexv", i)) & startsWith(allele2_hexhexvar, paste0("LHex_hexv", i)))
+  
+ # make a counts table so that I can calculate % = (AD/totalAD)
+  category_counts <- heterozygous_LHex %>%
+    group_by(Category) %>%
+    summarise(count = n(), .groups = 'drop') %>%
+    mutate(percentage = ifelse(Category == "AD", (count / 50) * 100,
+                               (count / 27) * 100),
+           fraction = paste0(count, "/", ifelse(Category == "AD", 50, 27)))  # Create a fraction string
+  
+  #graph:
+  # Create the bar chart
+  p <- ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+              position = position_stack(vjust = 0.5), 
+              color = "black") +  # Add percentages and fractions on top of the bars
+    labs(title = paste0("Percent of AD/CTRL alleles in all SHex-hexv",i, "/LHex-hexv",i," Heterozygous samples"), x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+    theme_bw() +
+    scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))
+  
+  print(p)
+}
+
+```
+
+
+#### Finally, I looked into cases that homozygous non-expanded cases. 
+```{r, echo=F, out.width="50%"}
+# homozygous SHex-hexv cases:
+
+#make new df for hex_hexvar 
+hex_hexvar_df <- alleleCall_filtered %>% select(filename, allele1_hexhexvar, allele2_hexhexvar, Category, pattern)
+
+#filtering hex_hexvar_df so that it only contains homozygous Shex samples:
+homozygous_SHex <- hex_hexvar_df %>%
+  filter(startsWith(allele1_hexhexvar, paste0("SHex")) & startsWith(allele2_hexhexvar, paste0("SHex")))
+
+#make a counts table so that I can calculate % = (AD/totalAD)
+category_counts <- homozygous_SHex %>%
+  group_by(Category) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = ifelse(Category == "AD", (count / 50) * 100,
+                             (count / 27) * 100),
+         fraction = paste0(count, "/", ifelse(Category == "AD", 50, 27)))  # Create a fraction string
+
+#graph:
+# Create the bar chart
+p <- ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+            position = position_stack(vjust = 0.5), 
+            color = "black") +  # Add percentages and fractions on top of the bars
+  labs(title = paste0("Percent of AD/CTRL alleles in all SHex-hexv/SHex-hexv Homozygous samples"), x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+  theme_bw() +
+  scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))
+
+print(p)
+
+
+
+############
+#start of with SHex-hexv1 and other hexvar cases:
+############
+for (i in 0:6){
+  #filtering hex_hexvar_df so that it only contains homozygous Lhex samples:
+  homozygous_SHex <- hex_hexvar_df %>%
+    filter(startsWith(allele1_hexhexvar, paste0("SHex_hexv", i)) & startsWith(allele2_hexhexvar, paste0("SHex_hexv", i)))
+
+  
+  #make a counts table so that I can calculate % = (AD/totalAD)
+  category_counts <- homozygous_SHex %>%
+    group_by(Category) %>%
+    summarise(count = n(), .groups = 'drop') %>%
+    mutate(percentage = ifelse(Category == "AD", (count / 50) * 100,
+                               (count / 27) * 100),
+           fraction = paste0(count, "/", ifelse(Category == "AD", 50, 27)))  # Create a fraction string
+  
+  #graph:
+  # Create the bar chart
+  p <- ggplot(category_counts, aes(x = Category, y = percentage, fill = Category)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = paste0(round(percentage, 1), "% (", fraction, ")")), 
+              position = position_stack(vjust = 0.5), 
+              color = "black") +  # Add percentages and fractions on top of the bars
+    labs(title = paste0("Percent of AD/CTRL alleles in all SHex-hexv",i, " Homozygous  SHex samples"), x = "Category", y = "Percentage") +  # Change y-axis label to "Count"
+    theme_bw() +
+    scale_fill_manual(values = c("AD" = "#FFC20A", "Control" = "#CE38EC"))
+  
+  print(p)
+}
+```
+
+
+
+## Conclusion
+* There are various variants of the SVA hexamer as well as different lengths of VNTR. The more expanded a hexamer and VNTR is, the more of a difference there is between AD and Control. 
+* LHex_hexv5 is more related to AD than the other variants
+* Samples with homozygous expanded hexamers alleles seem to be most related to AD
+
+#### Sequences to keep in mind when developing new primers:  
+* hexv0:  
+  `GGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGGGAGA`  
+* hexv1:   
+  `GGGAGAGGGAGAGGGAGAGGGAGAGCTTTGGAGCCTCTCTAAAAGGGCTCTGTACC`  
+* hexv2: (barely seen)
+* hexv3:  
+  `GGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGGGAGAGCTTTGGAGCCTCTCTAAAAGGGCTCTGTACCGGAGAGGGAGAGGG`
+  `AGAGGGGGAGGGGGAGGGGGAGGGGGAGGGGGAGGGGGAGCTTTGGAGCCTCTCTAAA`  
+* hexv4:  
+  `GGGAGAGGGAGAGGGAGAGGGAGACGGAGACGGAGAGGGAGAGGGAGAGGGAGAGGGAGA`  
+* hexv5: 
+  `GGGGAGAGGGGAGAGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGAGAGCTTTGGAGCCTCTCTAAAA`  
+* hexv6:  
+  `GGGGAGAGGGGAGAGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGGAGAGGGGA`  
+  
+## Future Directions
+* More screening using more repeat-primed PCR primers outlined from this study
+* Using these SVA variants, I can apply this to my large-scale SVA project

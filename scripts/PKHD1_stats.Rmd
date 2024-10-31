@@ -1,0 +1,718 @@
+---
+title: "Read Length Histogram"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+
+# Import data
+```{r}
+#read length
+longestReadLengths <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/longestReadLengths.txt", quote="\"", comment.char="")
+
+
+#flank and repeat sequence length files:
+pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_len <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/pool-2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_len.txt", quote="\"", comment.char="")
+
+#VNTR data:
+VNTR_len <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/VNTR_len.txt", quote="\"", comment.char="")
+
+# short hex vntr
+VNTR_len_hex_short <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/VNTR_len_hex_short.txt", quote="\"", comment.char="")
+
+# long hex vntr
+VNTR_len_hex_long <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/VNTR_len_hex_long.txt", quote="\"", comment.char="")
+
+####################################
+#pool1 control data:
+
+#hexamer repeat + flank data:
+pool.1_1054_PK1sva_bc1010_Female_Control_19R1_53R2_p1_seq_len <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/pool-1_1054_PK1sva_bc1010_Female_Control_19R1_53R2_p1_seq_len.txt", quote="\"", comment.char="")
+
+#VNTR pool1 general:
+VNTR_len_pool1 <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/VNTR_len_pool1.txt", quote="\"", comment.char="")
+
+#VNTR from short hex:
+VNTR_len_pool1_short <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/VNTR_len_pool1_short.txt", quote="\"", comment.char="")
+
+#VNTR from long hex:
+VNTR_len_pool1_long <- read.table("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/VNTR_len_pool1_long.txt", quote="\"", comment.char="")
+
+```
+
+# Make a histogram of the read length data
+```{r}
+library(tidyverse)
+
+#histogram
+longestReadLengths %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "gray")+
+  xlim(3250,3350)+
+  xlab("Read Length")+
+  ggtitle("Read length distribution for \n pool-2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_long.fastq")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+mean(longestReadLengths$V1)
+median(longestReadLengths$V1)
+
+
+
+long_data <- pivot_longer(longestReadLengths, cols = everything(), names_to = "reads", values_to = "Count")
+#barplot:
+# Create boxplot
+ggplot(long_data, aes(x = reads, y = Count)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Read Length Distribution for \n pool-2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_long.fastq", x = "Read Lengths", y = "Count")
+```
+
+# bar plot of the flank seq + repeat lengths
+```{r}
+pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_len %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "darkgray")+
+  xlim(200,800)+
+  xlab("sequence lengths")+
+  ggtitle("Sequence Length Dristribution, including RP-PCR Primers and the Repeat \n for pool-2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1")
+```
+
+
+# VNTR length hisogram:
+```{r}
+#overall fastq
+VNTR_len %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "darkgray")+
+  xlim(200,1400)+
+  xlab("sequence lengths")+
+  ggtitle("VNTR Sequence Length Dristribution")
+
+#short hex expansion
+VNTR_len_hex_short %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "darkgray")+
+  xlim(200,1400)+
+  xlab("sequence lengths")+
+  ggtitle("VNTR Sequence Length Dristribution from non-expanded hexamer reads")
+
+#long hex expansion
+VNTR_len_hex_long %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "darkgray")+
+  xlim(200,1400)+
+  xlab("sequence lengths")+
+  ggtitle("VNTR Sequence Length Dristribution from expanded hexamer reads")
+
+
+#################################### pool1:
+VNTR_len_pool1_short %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "darkgray")+
+  xlim(200,1400)+
+  xlab("sequence lengths")+
+  ggtitle("Control --VNTR Sequence Length Dristribution from non-expanded hexamer reads")
+  
+
+VNTR_len_pool1_long %>% 
+  ggplot(aes(V1))+
+  geom_histogram(bins = 100, color = "black", fill = "darkgray")+
+  xlim(200,1400)+
+  xlab("sequence lengths")+
+  ggtitle("Control -- VNTR Sequence Length Dristribution from expanded hexamer reads")
+
+```
+
+
+# Linear regression comparing hex length vs VNTR
+```{r}
+#For this I will compare VNTR_len and hex len
+#lm(formula= VNTR_len ~ pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_len, data = train)
+
+VNTR_plot_len = VNTR_len[1:41432,]
+pool_2_test <- pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1_len[1:41432,]
+
+
+#################################################
+VNTR_expanded <- VNTR_plot_len[VNTR_plot_len > 1000]
+hist(VNTR_expanded, xlim= c(1100,1400))
+
+hex_expanded <- pool_2_test[pool_2_test > 400]
+hist(hex_expanded, xlim= c(400,600))
+hex_sub <- hex_expanded[1:20772]
+
+df2 <- data.frame(
+  hex_sub,
+  VNTR_expanded
+)
+
+model2 <- lm(hex_sub ~ VNTR_expanded, data = df2)
+
+ggplot(df2, aes(x = hex_sub, y = VNTR_expanded)) +
+  geom_point(color = "blue") +  # Scatter plot
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Regression line
+  labs(title = "Linear Regression of pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1",
+       x = "Expanded Hexamer Length",
+       y = "Expanded VNTR Length") 
+
+
+df2 %>% 
+  ggplot(aes(x = hex_sub, y = VNTR_expanded))+
+  geom_point()
+
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################
+```
+
+
+```{r}
+# Example dataframe
+df <- data.frame(
+  VNTR_plot_len = rnorm(1000, mean = 840, sd = 50),
+  pool_2_test = rnorm(1000))
+#)
+
+model <- lm(VNTR_plot_len ~ pool_2_test, data = df)
+
+ggplot(df, aes(x = pool_2_test, y = VNTR_plot_len)) +
+  geom_point(color = "blue") +  # Scatter plot
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Regression line
+  labs(title = "Linear Regression of pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1",
+       x = "Hexamer Length",
+       y = "VNTR Length") +
+  theme_minimal()
+
+# NOTE: cannot run a linear regression between the models do not follow a normal distribution
+
+
+df %>% 
+  ggplot(aes(x = pool_2_test, y = VNTR_plot_len)) +
+  geom_point()+
+  geom_smooth(method = "lm", se = T/F)+
+  labs(title = "Linear Regression of pool_2_2060_PK1sva_bc1009_Male_AD_20R1_56R2_p1",
+       x = "Hexamer Length",
+       y = "VNTR Length")
+
+
+
+
+
+##########################################pool1:
+#VNTR_pool1_sub <- VNTR_len_pool1[1:6650]
+# VNTR_len_pool1_exp <- VNTR_pool1_sub[VNTR_pool1_sub > 1000]
+# 
+# #filtering for expanded cases:
+# hex_pool1_filt <- pool.1_1054_PK1sva_bc1010_Female_Control_19R1_53R2_p1_seq_len$V1[pool.1_1054_PK1sva_bc1010_Female_Control_19R1_53R2_p1_seq_len$V1 > 450]
+# 
+# df_pool1 <- data.frame(hex_pool1_filt, 
+#                        VNTR_pool1_sub
+#   
+# )
+# 
+# 
+# df_pool1 %>% 
+#   ggplot(aes(x = hex_pool1_filt, y = VNTR_pool1_sub)) +
+#   geom_point()+
+#   geom_smooth(method = "lm", se = T/F)+
+#   labs(title = "Linear Regression of \n pool_1_1054_PK1sva_bc1010_Female_Control_19R1_53R2_p1",
+#        x = "Expanded Hexamer Length",
+#        y = "Expanded VNTR Length")
+  
+```
+
+
+# Making pie chart:
+```{r}
+AD_cases <- c(60.76,0.47, (100-60.76-.47))
+AD_labels <- c("Case 1", "Case 2", "Other")
+pie(AD_cases, AD_labels, main = "AD Cases")
+
+
+Ctrl_cases <- c(43.82, 8.03, (100-43.82-8.03))
+Ctrl_labels <- c("Case 1", "Case 2", "Other")
+pie(Ctrl_cases, Ctrl_labels, main = "Control Cases")
+```
+
+# statistics on the percentages:
+```{r}
+# ttest
+AD_c1 = c(58.3750435345042,70.06291444626088,68.18436916088395,11.145176945475836,69.00125967248515,68.66230431541456,50.12747801654612,69.45319773687602,63.95310593602461,69.62506617894788,69.79224444120081)
+
+Ctrl_c1 = c(67.19947728250649,54.01301518438177,70.57092725064112,50.00200660843043,0.4291845493562232,28.68869711639655,35.87046933217871)
+
+df <- data.frame(
+  AD_c1 = AD_c1[1:7],
+  Ctrl_c1 = Ctrl_c1
+)
+#test for normality:
+ggplot(df, aes(sample = AD_c1)) +
+  stat_qq() +
+  stat_qq_line(color = "red") +
+  ggtitle("Q-Q Plot") +
+  xlab("Theoretical Quantiles") +
+  ylab("Sample Quantiles")
+ggplot(df, aes(sample = Ctrl_c1)) +
+  stat_qq() +
+  stat_qq_line(color = "red") +
+  ggtitle("Q-Q Plot") +
+  xlab("Theoretical Quantiles") +
+  ylab("Sample Quantiles")
+
+t_test_result <- t.test(AD_c1, Ctrl_c1)
+t_test_result
+
+#wilcoxon rank sum:
+wilcox_test_result <- wilcox.test(AD_c1, Ctrl_c1)
+print(wilcox_test_result)
+
+# cannot do chi-squared test because my chi-squared assumes data is categorical, whereas my data is continuous, but here is how to do it anyways
+M <- as.table(rbind(AD_c1, Ctrl_c1))
+
+chisq.test(M)
+```
+
+# bigger version of my linear regression that covers all data points:
+```{r}
+#import new data
+combined_hex_VNTR_len <- read.delim("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/combined_hex_len.txt", header=FALSE)
+
+names(combined_hex_VNTR_len) <- c("Hexamer", "VNTR", "SampleID")
+
+# #check for normality:
+# ggplot(combined_hex_VNTR_len, aes(sample = log(V1))) +
+#   stat_qq() +
+#   stat_qq_line(color = "red") +
+#   ggtitle("Q-Q Plot") +
+#   xlab("Theoretical Quantiles") +
+#   ylab("Sample Quantiles")
+# ggplot(combined_hex_VNTR_len, aes(sample = sqrt(V2))) +
+#   stat_qq() +
+#   stat_qq_line(color = "red") +
+#   ggtitle("Q-Q Plot") +
+#   xlab("Theoretical Quantiles") +
+#   ylab("Sample Quantiles")
+# 
+# hist(combined_hex_VNTR_len$V2, main = "Histogram of V2", xlab = "V2", breaks = 20)
+
+# # Q-Q plots
+# qqnorm(data$V2, main = "Q-Q Plot of V2")
+# qqline(data$V2, col = "red")
+# 
+# data$V2_log <- log(data$V2 + 1)  # Adding 1 to avoid log(0)
+# 
+# data$V2_sqrt <- sqrt(data$V2)
+# 
+# library(MASS)
+# boxcox_v2 <- boxcox(lm(V2 ~ 1, data = data))
+# lambda_v2 <- boxcox_v2$x[which.max(boxcox_v2$y)]
+# data$V2_boxcox <- (data$V2^lambda_v2 - 1) / lambda_v2
+# 
+# qqnorm(data$V2_boxcox, main = "Q-Q Plot of V2")
+# qqline(data$V2, col = "red")
+
+#ggplot:
+
+#make a 4th column that has AD or Control:
+df_with_cat <- combined_hex_VNTR_len %>%
+  mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+                           ifelse(grepl("_AD_", SampleID), "AD", NA)))
+#linear reg sorted by AD or Ctrl
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = F) +
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")
+
+#violin plot of AD and ctrl
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_boxplot() +
+  stat_smooth(method = "lm", se = F) +
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")
+
+#linear reg sorted by sampleID
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = SampleID)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = F) +
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")+
+  theme(legend.position = "none")
+
+# Run linear model for Control
+model_control <- lm(VNTR ~ Hexamer, data = subset(df_with_cat, Category == "Control"))
+summary(model_control)
+
+# Run linear model for AD
+model_ad <- lm(VNTR ~ Hexamer, data = subset(df_with_cat, Category == "AD"))
+summary(model_ad)
+
+
+
+# Fit a linear model
+model <- lm(VNTR ~ Hexamer, data = combined_hex_VNTR_len)
+summary(model)
+# Q-Q plot of residuals
+qqnorm(model$residuals)
+qqline(model$residuals, col = "red")
+
+
+
+#trying Multiple liear regression:
+
+lm_model <- lm(VNTR ~ Hexamer, data = combined_hex_VNTR_len)
+summary(lm_model)
+
+data.frame(
+  Residuals = lm_model$residuals,
+  Predicted.Values = predict(lm_model, combined_hex_VNTR_len)
+) %>%
+  ggplot(aes(x = Predicted.Values, y = Residuals)) +
+    geom_point() +
+    theme_bw() +
+    geom_hline(yintercept = 0, color = "red") +
+    xlab("Predicted Values")
+
+# Let's check the normality of errors assumption
+qqnorm(lm_model$residuals) 
+qqline(lm_model$residuals)
+
+#pearsons correlation test:
+cor.test(combined_hex_VNTR_len$Hexamer, combined_hex_VNTR_len$VNTR, method = "spearman")
+## Formula interface.
+
+require(graphics)
+pairs(combined_hex_VNTR_len[,1:2])
+```
+
+#smaller hex vs VNTR length file
+```{r}
+#import data:
+TEMP_len <- read.delim("//wsl.localhost/Ubuntu/home/roel/bioinfo/florida_research/TEMP_len.txt", header=FALSE)
+
+ggplot(data = TEMP_len, aes(x = V1, y = V2, color = V3)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = F) +
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")
+
+
+```
+
+
+# Doing this on FULL data:
+```{r}
+#import new data
+combined_hex_VNTR_len_full <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/combined_hex_len_old.txt", header=FALSE)
+
+names(combined_hex_VNTR_len_full) <- c("Hexamer", "VNTR", "SampleID")
+
+#for some reason, one file didn't have "_AD_" in the name, so I am editing the dataframe to include that:
+combined_hex_VNTR_len_full <- combined_hex_VNTR_len_full %>% 
+  mutate(SampleID = str_replace(SampleID, "pool-2_110373_PK1sva_bc1018_83_Male_37R1_44R2_p1.fastq", "pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq" ))
+
+# #check for normality:
+# ggplot(combined_hex_VNTR_len, aes(sample = log(V1))) +
+#   stat_qq() +
+#   stat_qq_line(color = "red") +
+#   ggtitle("Q-Q Plot") +
+#   xlab("Theoretical Quantiles") +
+#   ylab("Sample Quantiles")
+# ggplot(combined_hex_VNTR_len, aes(sample = sqrt(V2))) +
+#   stat_qq() +
+#   stat_qq_line(color = "red") +
+#   ggtitle("Q-Q Plot") +
+#   xlab("Theoretical Quantiles") +
+#   ylab("Sample Quantiles")
+# 
+# hist(combined_hex_VNTR_len$V2, main = "Histogram of V2", xlab = "V2", breaks = 20)
+
+# # Q-Q plots
+# qqnorm(data$V2, main = "Q-Q Plot of V2")
+# qqline(data$V2, col = "red")
+# 
+# data$V2_log <- log(data$V2 + 1)  # Adding 1 to avoid log(0)
+# 
+# data$V2_sqrt <- sqrt(data$V2)
+# 
+# library(MASS)
+# boxcox_v2 <- boxcox(lm(V2 ~ 1, data = data))
+# lambda_v2 <- boxcox_v2$x[which.max(boxcox_v2$y)]
+# data$V2_boxcox <- (data$V2^lambda_v2 - 1) / lambda_v2
+# 
+# qqnorm(data$V2_boxcox, main = "Q-Q Plot of V2")
+# qqline(data$V2, col = "red")
+
+#ggplot:
+
+#make a 4th column that has AD or Control:
+df_with_cat <- combined_hex_VNTR_len_full %>%
+  mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+                           ifelse(grepl("_AD_", SampleID), "AD", NA)))
+#linear reg sorted by AD or Ctrl
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1) +
+  stat_smooth(method = "lm", se = F) +
+  xlim(0,1200)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")
+
+#violin plot of AD and ctrl
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_boxplot() +
+  stat_smooth(method = "lm", se = F) +
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")
+
+#linear reg sorted by sampleID
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = SampleID)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = F) +
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across all samples", x = "Hexamer Length", y="VNTR Length")+
+  theme(legend.position = "none")
+
+# Run linear model for Control
+model_control <- lm(VNTR ~ Hexamer, data = subset(df_with_cat, Category == "Control"))
+summary(model_control)
+
+# Run linear model for AD
+model_ad <- lm(VNTR ~ Hexamer, data = subset(df_with_cat, Category == "AD"))
+summary(model_ad)
+
+
+
+# Fit a linear model
+model <- lm(VNTR ~ Hexamer, data = combined_hex_VNTR_len_full)
+summary(model)
+# Q-Q plot of residuals
+qqnorm(model$residuals)
+qqline(model$residuals, col = "red")
+
+
+
+#trying Multiple liear regression:
+
+lm_model <- lm(VNTR ~ Hexamer, data = combined_hex_VNTR_len_full)
+summary(lm_model)
+
+data.frame(
+  Residuals = lm_model$residuals,
+  Predicted.Values = predict(lm_model, combined_hex_VNTR_len_full)
+) %>%
+  ggplot(aes(x = Predicted.Values, y = Residuals)) +
+    geom_point(size=1) +
+    theme_bw() +
+    geom_hline(yintercept = 0, color = "red") +
+    xlab("Predicted Values")
+
+# Let's check the normality of errors assumption
+qqnorm(lm_model$residuals) 
+qqline(lm_model$residuals)
+
+#pearsons correlation test:
+cor.test(combined_hex_VNTR_len_full$Hexamer, combined_hex_VNTR_len_full$VNTR, method = "spearman")
+## Formula interface.
+
+require(graphics)
+pairs(combined_hex_VNTR_len_full[,1:2])
+```
+#################################################### 
+
+# subsetting full data by only looking at +/+ cases from both AD and control:
+```{r}
+exp_exp <- c('pool-1_2908_PK1sva_bc1023_Male_AD_36R1_47R2_p4.fastq', 'pool-3_ADRC2157_PK1sva_bc1017_Female_AD_39R1_50R2_p4.fastq', 'pool-3_2157_PK1sva_bc1004_Female_AD_39R1_49R2_p5.fastq', 'pool-3_NACC079433_PK1sva_bc1006_Male_AD_46R1_50R2_p11.fastq', 'pool-3_1610_PK1sva_bc1011_Female_AD_31R1_34R2_p3.fastq', 'pool-1_110398_PK1sva_bc1007_Female_AD_42R1_43R2_p1.fastq', 'pool-4_A21-032_PK1sva_bc1010_Male_AD_44R1_47R2_p1.fastq', 'pool-5_NACC351618_PK1sva_bc1021_Male_AD_43R1_56R2_p9.fastq', 'pool-5_ADRC1956_PK1sva_bc1008_Male_AD_46R1_51R2_p4.fastq', 'pool-1_A20-002_PK1sva_bc1013_Male_AD_47R1_48R2_p4.fastq', 'pool-4_A15-005_PK1sva_bc1013_Male_AD_41R1_48R2_p4.fastq', 'pool-5_ADRC2014_PK1sva_bc1020_Male_AD_32R1_48R2_p5.fastq', 'pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq', 'pool-5_ADRC1862_PK1sva_bc1009_Male_AD_29R1_42R2_p5.fastq', 'pool-2_A16-003_PK1sva_bc1007_Male_AD_38R1_39R2_p1.fastq', 'pool-3_ADRC2227_PK1sva_bc1007_Male_AD_40R1_54R2_p4.fastq', 'pool-3_1603_PK1sva_bc1010_Male_AD_45R1_53R2_p1.fastq', 'pool-2_1024_PK1sva_bc1004_Male_AD_48R1_49R2_p4.fastq', 'pool-2_ADRC2107_PK1sva_bc1017_Female_AD_41R1_43R2_p4.fastq', 'pool-1_ADRC1935_PK1sva_bc1005_Female_AD_45R1_49R2_p1.fastq', 'pool-5_2153_PK1sva_bc1014_Male_AD_31R1_44R2_p4.fastq','pool-2_ADRC2526_PK1sva_bc1005_Female_Control_39R1_39R2_p1.fastq', 'pool-5_ADRC2015_PK1sva_bc1012_Male_Control_36R1_41R2_p4.fastq', 'pool-4_ADRC1872_PK1sva_bc1012_Female_Control_42R1_47R2_p4.fastq', 'pool-3_HBTB96_PK1sva_bc1013_Female_Control_50R1_59R2_p4.fastq', 'pool-2_1517_PK1sva_bc1010_Female_Control_35R1_43R2_p1.fastq', 'pool-1_1873_PK1sva_bc1009_Male_Control_40R1_50R2_p1.fastq', 'pool-4_2052_PK1sva_bc1014_Male_Control_44R1_45R2_p4.fastq')
+
+#remove lines that contain unwanted exp exp filenames:
+filtered_df <- combined_hex_VNTR_len_full[combined_hex_VNTR_len_full$SampleID %in% exp_exp, ]
+
+
+#for some reason, one file didn't have "_AD_" in the name, so I am editing the dataframe to include that:
+combined_hex_VNTR_len_full <- filtered_df %>% 
+  mutate(SampleID = str_replace(SampleID, "pool-2_110373_PK1sva_bc1018_83_Male_37R1_44R2_p1.fastq", "pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq" ))
+
+#make a 4th column that has AD or Control:
+df_with_cat <- combined_hex_VNTR_len_full %>%
+  mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+                           ifelse(grepl("_AD_", SampleID), "AD", NA)))
+
+#subsetting expexp dataframe so that it only has Hexamer > 450 and VNTR > 1500
+subset_df_with_cat <- df_with_cat %>% 
+  filter(Hexamer >= 450 & VNTR >= 1500)
+
+#unique AD names in this subset of data:
+uniq_names <- unique(subset_df_with_cat$SampleID)
+sum(grepl("_AD_", uniq_names))
+sum(grepl("_Control_", uniq_names))
+
+# Run linear model for Control
+# model_control <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat, Category == "Control"))
+# summary(model_control)
+# 
+# # Run linear model for AD
+# model_ad <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat, Category == "AD"))
+# summary(model_ad)
+
+#linear reg sorted by AD or Ctrl
+ggplot(data = df_with_cat, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1, alpha = 0.6) +
+  stat_smooth(method = "lm", se = F) +
+  xlim(450, 800)+
+  ylim(1500,4000)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across only both expanded samples", x = "Hexamer Length", y="VNTR Length")
+
+
+```
+
+
+# producing PCA plot to see if the data groups:
+```{r}
+library(ggfortify)  
+
+pca_df <- df_with_cat %>% filter(Hexamer >= 450 & Hexamer <= 800 & VNTR >=1500)
+
+
+ggplot(pca_df, aes(x = Hexamer))+
+  geom_histogram(bins = 200)
+
+pca_res <- prcomp(pca_df[1:2], scale. = T)
+
+autoplot(pca_res, data = pca_df, colour = 'Category', loadings = T, loadings.label = T, alpha = .5)#, frame = T)
+```
+*Note* This means thta PC1 explains 55.18% of variance and PC2 explains 44.82% of the variance.  
+*Note* Cannot make sense of the data because Hexamer length and VNTR don't appear to have a linear relationship so far
+
+#trying out LDA:
+```{r}
+#import new data
+combined_hex_VNTR_allele <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/combined_hex_len_exp_allele.txt", header=FALSE)
+
+names(combined_hex_VNTR_allele) <- c("Hexamer", "VNTR", "SampleID")
+
+#for some reason, one file didn't have "_AD_" in the name, so I am editing the dataframe to include that:
+combined_hex_VNTR_allele <- combined_hex_VNTR_allele %>% 
+  mutate(SampleID = str_replace(SampleID, "pool-2_110373_PK1sva_bc1018_83_Male_37R1_44R2_p1.fastq", "pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq" ))
+
+
+#make a 4th column that has AD or Control:
+df_with_cat_allele <- combined_hex_VNTR_allele %>%
+  mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+                           ifelse(grepl("_AD_", SampleID), "AD", NA)))
+
+subset_df_with_cat_allele <- df_with_cat_allele %>% 
+  filter(Hexamer >= 450 & VNTR >= 1500)
+
+# Run linear model for Control
+model_control <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat_allele, Category == "Control"))
+summary(model_control)
+
+# Run linear model for AD
+model_ad <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat_allele, Category == "AD"))
+summary(model_ad)
+
+#get n
+uniq_names_allele_sub <- unique(subset_df_with_cat_allele$SampleID)
+sum(grepl("_AD_", uniq_names_allele_sub))
+sum(grepl("_Control_", uniq_names_allele_sub))
+
+ggplot(data = df_with_cat_allele, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1, alpha = 0.6) +
+  stat_smooth(method = "lm", se = F, aes(group = SampleID), linetype = "solid") +
+  xlim(450, 1200)+
+  ylim(1500,4000)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length using all expanded alleles", x = "Hexamer Length", y="VNTR Length")+
+  theme(legend.position = "none")+
+  #geom_line(aes(group = SampleID)) +
+  scale_color_manual(values = c("Control" = "blue")) # Define colors for categories
+```
+
+# filtered data of only the expanded alleles:
+```{r}
+#import new data
+combined_hex_VNTR_allele <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/combined_hex_len_exp_allele_filtered_long.txt", header=FALSE)
+
+names(combined_hex_VNTR_allele) <- c("Hexamer", "VNTR", "SampleID")
+
+#for some reason, one file didn't have "_AD_" in the name, so I am editing the dataframe to include that:
+combined_hex_VNTR_allele <- combined_hex_VNTR_allele %>% 
+  mutate(SampleID = str_replace(SampleID, "pool-2_110373_PK1sva_bc1018_83_Male_37R1_44R2_p1.fastq", "pool-2_110373_PK1sva_bc1018_83_Male_AD_37R1_44R2_p1.fastq" ))
+
+
+#make a 4th column that has AD or Control:
+df_with_cat_allele <- combined_hex_VNTR_allele %>%
+  mutate(Category = ifelse(grepl("_Control_", SampleID), "Control", 
+                           ifelse(grepl("_AD_", SampleID), "AD", NA)))
+
+subset_df_with_cat_allele <- df_with_cat_allele %>% 
+  filter(Hexamer >= 450 & VNTR >= 1500)
+
+# Run linear model for Control
+model_control <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat_allele, Category == "Control"))
+summary(model_control)
+
+# Run linear model for AD
+model_ad <- lm(VNTR ~ Hexamer, data = subset(subset_df_with_cat_allele, Category == "AD"))
+summary(model_ad)
+
+#get n
+uniq_names_allele_sub <- unique(subset_df_with_cat_allele$SampleID)
+sum(grepl("_AD_", uniq_names_allele_sub))
+sum(grepl("_Control_", uniq_names_allele_sub))
+
+#linear reg sorted by AD or Ctrl
+ggplot(data = subset_df_with_cat_allele, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1, alpha = 0.6) +
+  stat_smooth(method = "lm", se = F) +
+  xlim(0, 800)+
+  ylim(0,4000)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length across only both expanded samples after\n filtering out non-full-SVA reads", x = "Hexamer Length", y="VNTR Length")
+
+ggplot(data = subset_df_with_cat_allele, aes(x = Hexamer, y = VNTR, color = Category)) +
+  geom_point(size=1, alpha = 0.6) +
+  stat_smooth(method = "lm", se = F, aes(group = SampleID), linetype = "solid") +
+  xlim(0, 1200)+
+  ylim(0,4000)+
+  theme_bw()+
+  labs(title = "Hexamer length vs VNTR length using all expanded alleles after filtering \nout non-full-SVA reads", x = "Hexamer Length", y="VNTR Length")+
+  # theme(legend.position = "none")+
+  #geom_line(aes(group = SampleID)) +
+  scale_color_manual(values = c("Control" = "blue", "AD" = "red")) # Define colors fo
+
+ggplot(data = df_with_cat_allele, aes(x = VNTR, fill = Category))+
+  geom_histogram(binwidth = 20)+
+  xlim(2000,3000)+
+  labs(title = "Non-Hexamer SVA lengths (VNTR) show two major groupings", x = "Non-Hexamer (VNTR) Length", y = "Count")
+```
+
+
+
+# looking at VNTR distribution in one sample (seeing if it groups)
+```{r}
+VNTR_len_new <- read.delim("/blue/lien.nguyen/rossellwood/amplicon_pool_data_Huong/scripts/TEST_CANDELETE_VNTRLen.txt", header=FALSE)
+
+ggplot(data = VNTR_len_new, aes(x = as.numeric(V1)))+
+  geom_bar(binwidth = 500)+
+  xlim(2250,3000)
+
+
+```
+
