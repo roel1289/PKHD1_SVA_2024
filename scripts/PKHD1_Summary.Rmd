@@ -599,13 +599,14 @@ knitr::kable(RU_len_df)
 #### Comparing hexv0 and hexv1 distances from primer to start of hexamer
 Because hexv0 and hexv1 are similar, it is worth comparing if hexv0 and hexv1 have a similar distance between the hexamer primer and the start of hexamer repeats. Thus, this would help distinguish the two variants, being able to tell if hexv1 has the insert just before the hexamer repeats. 
 
-
-```{r, echo = F, fig.cap="**Figure 16.**"}
+  
+As shown in **Figure 16**, although there are much more of the hexv1, the hexv0 lengths seem to follow the same pattern. This makes it difficult for us to identify if there is a difference between hexv0 and hexv1 in terms of distance from the primer to the start of the hexamer repeat. 
+```{r, echo = F, fig.cap="**Figure 16.** A histogram of the length from the primer to start of hexamer sequence."}
 #import the tsv file that I generated with this distance:
 hex_primer_dist <- read.delim("/blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/filtered_full_FASTQ/hex_primer_dist.txt", header=FALSE)
 
 ggplot(data = hex_primer_dist, aes(x = V3, fill = V1))+
-  geom_histogram(binwidth = 2)+
+  geom_histogram(binwidth = 3)+
   labs(title = "Histogram comparing lengths between primer and hexamer start positions\ncompared between hexv0 and hexv1", x = "Distance (bp)", y = "Count")+
   xlim(80,100)+
   guides(fill=guide_legend(title="Hexamer Variants"))+

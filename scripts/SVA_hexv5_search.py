@@ -7,10 +7,14 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 from fuzzysearch import find_near_matches
 
+
+# This file can be used to filter out reads and print off specified hexamer variants by copying and pasting print statements into different scenarios. It can also be 
+# used to determine how many G4AGAs and GGGAGAs are present. And finally, it can be used to find the distance between hexamer and primer. 
+
 def get_args():
     parser = argparse.ArgumentParser(description="A program to hold input + output file name")
     parser.add_argument("-f", "--in_file", help="designates absolute file path to the input file that contains the FASTQ files", type = str)
-    parser.add_argument("-o", "--out_table", help="designates absolute file path to the output allele table. It will be a .txt", type = str)
+    # parser.add_argument("-o", "--out_table", help="designates absolute file path to the output allele table. It will be a .txt", type = str)
     
     return parser.parse_args()
     
@@ -53,6 +57,9 @@ with open(args.in_file, "r") as in_fastq:
         G4AGA_rev_match = re.search("TCTCCCC", seq)
         GGGAGA_rev_match = re.search("CTCTCCC", seq)
 
+        ###
+        hexamer_match = list(re.finditer("[G]*GGGAGA", seq))
+
 
         G4AGA_count = 0
         GGGAGA_count = 0
@@ -60,7 +67,7 @@ with open(args.in_file, "r") as in_fastq:
         Lhex_ratio = 0
 
         # ReGex to first separate Hexamer expansion or nonexpansion as well as interruption cases
-        match = re.search("([ATGC]*GTGAGGCGTAG)([ATGC]*CTCTGTGCAATCGGAGTAGAGG)", seq) 
+        match = re.search("([ATGC]*GTGAGGCGTAG)([ATGC]*(CTCTGTGCAATCGGAGTAGAGG))", seq) 
         match2 = re.search("(CCTCTACTCCGATTGCACAGAG[ATGC]*)(CTACGCCTCAC[AGTC]*)", seq) #reverse complement of first regex statement   
 
         #ReGex for Hexamer variants
@@ -79,14 +86,22 @@ with open(args.in_file, "r") as in_fastq:
             
             #short hexamer
             if len(hexamer) < 403:
+                # print(len(hexamer))
                 if hex_var2_match:
                     SHex_hexv2+=1
+                    
                 elif hex_var3_match:
                     SHex_hexv3+=1
+                    
+                    
                 elif hex_var4_match:
                     SHex_hexv4+=1
+                    
+                   
                 elif hex_var5_match:
                     SHex_hexv5+=1
+                    
+                    
                     # for m in G4AGA_match:
                     #     print(m)
                     #     G4AGA_count+=1
@@ -96,12 +111,35 @@ with open(args.in_file, "r") as in_fastq:
                     # print(G4AGA_count+GGGAGA_count)
                 elif hex_var6_match:
                     Shex_hexv6+=1
+                    
+                    
                 elif hex_var1_match:
                     SHex_hexv1+=1
+                    
+                    
+                    # print("__________hexv1____________")
+                    
+                    
+                    # print(seq)
+
+                    # print(hexamer_match[-1].end())
+
+                    # print(match.start(2))
+
+                    # print(f'hexv1\tSHex\t{(match.start(3)) - (hexamer_match[-1].end())}')                    
                 elif hex_var0_match:
                     SHex_hexv0+=1
+                    
+                
+                    # if hexamer_match:
+                    
+                    # print(seq)
 
-                # print((hexamer))
+                    # print(hexamer_match[-1].end())
+
+                    # print(match.start(2))
+                    # print(f'hexv0\tSHex\t{(match.start(3)) - (hexamer_match[-1].end())}')
+                    
 
             #long hexamer
             if len(hexamer) >= 403:
@@ -109,10 +147,16 @@ with open(args.in_file, "r") as in_fastq:
                     LHex_hexv2+=1
                 elif hex_var3_match:
                     LHex_hexv3+=1
+                    
                 elif hex_var4_match:
                     LHex_hexv4+=1
+                    
+                    
                 elif hex_var5_match:
                     LHex_hexv5+=1
+                    
+                    
+                    # print(seq)
                     # for m in G4AGA_match:
                     #     # print(m)
                     #     G4AGA_count+=1
@@ -122,12 +166,26 @@ with open(args.in_file, "r") as in_fastq:
                     # print(G4AGA_count+GGGAGA_count)
 
 
-                    print((len(hexamer)- 229)/6)
+                    # print((len(hexamer)- 229)/6)
                 elif hex_var6_match:
                     Lhex_hexv6+=1
+                    print(len(hexamer))
+                    print(seq)
+                    
+                    
                 elif hex_var1_match:
                     LHex_hexv1+=1
+                    
+                    
+                    # print(seq)
+                    # print(hexamer_match[-1].end())
+
+                    # print(match.start(2))
+                    # print(f'hexv1\tLHex\t{(match.start(3)) - (hexamer_match[-1].end())}')
                 elif hex_var0_match:
                     LHex_hexv0+=1
+                    
+           
+                    # print(f'hexv0\tLHex\t{(match.start(3)) - (hexamer_match[-1].end())}')
 
                 # print(len(hexamer))

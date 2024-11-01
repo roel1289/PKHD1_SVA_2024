@@ -12,8 +12,10 @@
 
 # conda activate data_processing  (contains minimap2 and samtools)  
 
-#When running with a new reference genome, all you have to do is change the ref genome file path, and 
-#which ref genome you will be aligning to
+
+# This script aligns FASTQ files to a reference genome
+# When running with a new reference genome, all you have to do is change the ref genome file path, and 
+# which ref genome you will be aligning to
 
 
 #paths:

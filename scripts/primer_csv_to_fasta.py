@@ -11,6 +11,7 @@ def get_args():
     
 args = get_args()
 
+# This script takes primers from a csv and turns them into FASTA format
 
 seen_headers = set()
 

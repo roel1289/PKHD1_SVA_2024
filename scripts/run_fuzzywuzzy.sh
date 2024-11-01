@@ -10,6 +10,9 @@
 #SBATCH --account=lien.nguyen
 #SBATCH --qos=lien.nguyen-b
 
+# This script runs my fuzzywuzzy read filtering script.
+
+
 # conda activate fuzzywuzzy to run script
 
 

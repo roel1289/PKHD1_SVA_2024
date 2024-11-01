@@ -12,6 +12,8 @@ def get_args():
     
 args = get_args()
 
+# This script renames file names using an excel file. This way the file names have meaning to them in terms of repeat length and AD vs Control
+
 
 # making a set that contains tuples (info for each part)
 name_set = set()

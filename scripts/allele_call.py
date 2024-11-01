@@ -20,13 +20,7 @@ args = get_args()
 # This script will call alleles. It will begin by calling alleles based off of hexamer and VNTR lengths, inwhich there are 4 combinations
 # If needed, I will dive more deeply distinguishing between interruption types
 # This file will input a FASTQ file and will output the 2 most abundant allele types. Calling based on have the largest two counts. 
-
-################################
-### Globals
-##################################
-
-
-
+# In future versions of this file, I will try and make it more concise and object oriented. 
 
 
 ####################################
@@ -1282,19 +1276,7 @@ for file in os.listdir("."):
         # Calling allele
         ####  
         with open(args.out_table, "a") as out_table:
-                # alleles  = [
-                #     ('Short_Hex_short_VNTR', S_short_VNTR, (S_short_VNTR/total_reads)),
-                #     ('Short_Hex_long_VNTR', S_long_VNTR, (S_long_VNTR/total_reads)),
-                #     ('Long_Hex_short_VNTR', L_short_VNTR, (L_short_VNTR/total_reads)),
-                #     ('Long_Hex_long_VNTR', L_long_VNTR, (L_long_VNTR/total_reads))
-                # ]
-
-                
-              
-                # alleles = [('ShortHex', short_hex, (short_hex/total_reads), "Short VNTR", short_VNTR) ,
-                #            ('LongHex', long_hex, (long_hex/total_reads), "Long VNTR", long_VNTR),
-                #            ('ShortHex', short_hex, (short_hex/total_reads), "Short VNTR", short_VNTR) ,
-                #            ('LongHex', long_hex, (long_hex/total_reads), "Long VNTR", long_VNTR)]
+               
             if filename_match:
                 R1 = int(filename_match.group(1))
                 R2 = int(filename_match.group(2))
@@ -1325,13 +1307,6 @@ for file in os.listdir("."):
                 top_two_alleles = alleles[:2]
 
                 out_table.write(f'{file}\t{top_two_alleles[0][9]}\t{top_two_alleles[0][0]}\t{top_two_alleles[0][1]}\t{top_two_alleles[0][2]}\t{top_two_alleles[0][3]}\t{top_two_alleles[0][4]}\t{top_two_alleles[0][5]}\t{top_two_alleles[0][6]}\t{top_two_alleles[0][7]}\t{top_two_alleles[0][8]}\t{top_two_alleles[1][0]}\t{top_two_alleles[1][1]}\t{top_two_alleles[1][2]}\t{top_two_alleles[1][3]}\t{top_two_alleles[1][4]}\t{top_two_alleles[1][5]}\t{top_two_alleles[1][6]}\t{top_two_alleles[1][7]}\t{top_two_alleles[1][8]}\tNA\tNA\tNA\tNA\n')
-
-        # def print_var(name, value, file):
-        #     '''this function allows me to print off both the variable name and its count. This allows me call alleles'''
-        #     out_table.write(f'{file}\t{name} = {value}')
-        # #print off result:
-
-        # print_var('top_two_alleles', top_two_alleles, file)
 
 
 # ./allele_call.py -f /blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/filtered_full_alleles_FASTQ/pool-1_1054.. -o alleleCall.txt

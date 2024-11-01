@@ -12,6 +12,8 @@ def get_args():
     
 args = get_args()
 
+# This script can be used to analyze mTR outputs. By uncommenting certain pieces of code, you can analyze different parts of the output.
+
 #dict. Key = sequence, value is the amount of times this sequence is seen
 seq_dict = dict()
 

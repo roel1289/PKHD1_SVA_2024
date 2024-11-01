@@ -9,7 +9,10 @@
 #SBATCH --time=12:00:00
 #SBATCH --account=lien.nguyen
 
-#note: use the first section of code when the input is BAM files, and use the second section of code when the input is FASTQ
+
+
+# This script is used to demultiplex files. It can be used with BAM or FASTQ input. For my project, I used FASTQ inputs, but the code for BAM is present. 
+# Note: use the first section of code when the input is BAM files, and use the second section of code when the input is FASTQ
 
 
 ##########################

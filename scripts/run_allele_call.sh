@@ -10,5 +10,6 @@
 #SBATCH --account=lien.nguyen
 #SBATCH --qos=lien.nguyen-b
 
+# This script runs my allele_call.py script. 
 
 /usr/bin/time -v ./allele_call.py -d /blue/lien.nguyen/rossellwood/repeat_expansion_tools/sort_expansion_type/filtered_full_FASTQ -o alleleCall_filtered18.txt
